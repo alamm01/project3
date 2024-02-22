@@ -12,7 +12,7 @@ import Auth from '../utils/auth';
 
 const Profile = () => {
   const { username: userParam } = useParams();
-
+console.log(userParam);
   const { loading, data } = useQuery(userParam ? QUERY_USER : QUERY_ME, {
     variables: { username: userParam },
   });
@@ -22,7 +22,7 @@ const Profile = () => {
   if (Auth.loggedIn() && Auth.getProfile().data.username === userParam) {
     return <Navigate to="/me" />;
   }
-
+console.log(data);
   if (loading) {
     return <div>Loading...</div>;
   }
