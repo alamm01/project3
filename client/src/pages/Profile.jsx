@@ -45,7 +45,7 @@ console.log(data);
 
         <div className="col-12 col-md-10 mb-5">
           <ThoughtList
-            thoughts={user.thoughts}
+            thoughts={user.cards}
             title={`${user.username}'s thoughts...`}
             showTitle={false}
             showUsername={false}
@@ -60,7 +60,6 @@ console.log(data);
           </div>
         )}
 
-          <FlipCard front= {"testing"} back={"back"} />
 
 
       </div>

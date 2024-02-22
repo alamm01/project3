@@ -2,112 +2,61 @@ const { User, Category, Card } = require('../models');
 const { signToken, AuthenticationError } = require('../utils/auth');
 
 const resolvers = {
-  Query: {
-    users: async () => {
-      return User.find().populate('thoughts');
+    Query: {
+      users: async () => {
+        return await User.find().populate('cards');
+      },
+      user: async (parent, { username }) => {
+        return await User.findOne({ username }).populate('cards');
+      },
+      me: async (parent, args, context) => {
+        if (context.user) {
+          return await User.findOne({ _id: context.user._id }).populate('cards');
+        }
+        throw new AuthenticationError('You need to be logged in!');
+      },
+      cards: async (parent, { categoryName }) => {
+        const category = await Category.findOne({ categoryName });
+        return await Card.find({ category: category?._id }).populate('category');
+      },
+      categories: async () => {
+        return await Category.find();
+      },
     },
-    user: async (parent, { username }) => {
-      return User.findOne({ username }).populate('thoughts');
+  
+    Mutation: {
+      addUser: async (parent, { username, email, password }) => {
+        const user = await User.create({ username, email, password });
+        const token = signToken(user);
+        return { token, user };
+      },
+      login: async (parent, { email, password }) => {
+        const user = await User.findOne({ email });
+        if (!user) {
+          throw new AuthenticationError('Incorrect credentials');
+        }
+  
+        const correctPw = await user.isCorrectPassword(password);
+        if (!correctPw) {
+          throw new AuthenticationError('Incorrect credentials');
+        }
+  
+        const token = signToken(user);
+        return { token, user };
+      },
+      addCard: async (parent, { front, back }, context) => {
+        if (context.user) {
+          const card = await Card.create({ front, back });
+          await User.findByIdAndUpdate(context.user._id, { $push: { cards: card._id } });
+          return card;
+        }
+        throw new AuthenticationError('You need to be logged in!');
+      },
+      addCategory: async (parent, { categoryName }) => {
+        return await Category.create({ categoryName });
+      },
     },
-    me: async (parent, args, context) => {
-      if (context.user) {
-        return User.findOne({ _id: context.user._id }).populate('cards');
-      }
-      throw AuthenticationError;
-    },
-  },
-
-  Mutation: {
-    addUser: async (parent, { username, email, password }) => {
-      const user = await User.create({ username, email, password });
-      const token = signToken(user);
-      return { token, user };
-    },
-    login: async (parent, { email, password }) => {
-      const user = await User.findOne({ email });
-
-      if (!user) {
-        throw AuthenticationError;
-      }
-
-      const correctPw = await user.isCorrectPassword(password);
-
-      if (!correctPw) {
-        throw AuthenticationError;
-      }
-
-      const token = signToken(user);
-
-      return { token, user };
-    },
-    addThought: async (parent, { thoughtText }, context) => {
-      if (context.user) {
-        const thought = await Thought.create({
-          thoughtText,
-          thoughtAuthor: context.user.username,
-        });
-
-        await User.findOneAndUpdate(
-          { _id: context.user._id },
-          { $addToSet: { thoughts: thought._id } }
-        );
-
-        return thought;
-      }
-      throw AuthenticationError;
-      ('You need to be logged in!');
-    },
-    addComment: async (parent, { thoughtId, commentText }, context) => {
-      if (context.user) {
-        return Thought.findOneAndUpdate(
-          { _id: thoughtId },
-          {
-            $addToSet: {
-              comments: { commentText, commentAuthor: context.user.username },
-            },
-          },
-          {
-            new: true,
-            runValidators: true,
-          }
-        );
-      }
-      throw AuthenticationError;
-    },
-    removeThought: async (parent, { thoughtId }, context) => {
-      if (context.user) {
-        const thought = await Thought.findOneAndDelete({
-          _id: thoughtId,
-          thoughtAuthor: context.user.username,
-        });
-
-        await User.findOneAndUpdate(
-          { _id: context.user._id },
-          { $pull: { thoughts: thought._id } }
-        );
-
-        return thought;
-      }
-      throw AuthenticationError;
-    },
-    removeComment: async (parent, { thoughtId, commentId }, context) => {
-      if (context.user) {
-        return Thought.findOneAndUpdate(
-          { _id: thoughtId },
-          {
-            $pull: {
-              comments: {
-                _id: commentId,
-                commentAuthor: context.user.username,
-              },
-            },
-          },
-          { new: true }
-        );
-      }
-      throw AuthenticationError;
-    },
-  },
-};
-
-module.exports = resolvers;
+  };
+  
+  module.exports = resolvers;
+  

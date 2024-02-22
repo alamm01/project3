@@ -3,10 +3,10 @@ import { useQuery } from '@apollo/client';
 import ThoughtList from '../components/ThoughtList';
 import ThoughtForm from '../components/ThoughtForm';
 
-import { QUERY_THOUGHTS } from '../utils/queries';
+import { QUERY_CARDS } from '../utils/queries';
 
 const Home = () => {
-  const { loading, data } = useQuery(QUERY_THOUGHTS);
+  const { loading, data } = useQuery(QUERY_CARDS);
   const thoughts = data?.thoughts || [];
 
   return (
